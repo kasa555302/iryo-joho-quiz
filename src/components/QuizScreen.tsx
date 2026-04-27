@@ -161,6 +161,7 @@ export function QuizScreen({ userId, onFinish }: Props) {
 
   return (
     <QuizCard
+      key={currentQuestion.id}
       question={currentQuestion}
       questionIndex={currentIndex}
       totalCount={questions.length}

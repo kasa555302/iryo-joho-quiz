@@ -43,11 +43,15 @@ function App() {
     const password = window.prompt('パスワードを入力してください（6文字以上）')
     if (!email || !password) return
 
-    const { error } = await supabase.auth.signUp({ email, password })
+    const { data, error } = await supabase.auth.signUp({ email, password })
     if (error) {
       alert('サインアップに失敗しました: ' + error.message)
     } else {
-      alert('確認メールを送信しました。メールを確認してください。')
+      // メール確認不要の設定のため、signUp成功時点でセッションが発行される
+      if (data.session) {
+        setUser(data.session.user)
+      }
+      alert('登録しました！')
     }
   }
 

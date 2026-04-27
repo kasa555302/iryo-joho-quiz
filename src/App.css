@@ -1,0 +1,454 @@
+/* ============================================================
+   医療情報技師学習クイズ - スタイル定義
+   ============================================================ */
+
+:root {
+  --primary: #0ea5e9;
+  --primary-dark: #0284c7;
+  --correct: #22c55e;
+  --incorrect: #ef4444;
+  --warning: #f59e0b;
+  --bg: #f8fafc;
+  --card-bg: #ffffff;
+  --text: #1e293b;
+  --text-muted: #64748b;
+  --border: #e2e8f0;
+  --radius: 10px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Hiragino Sans', 'Noto Sans JP', sans-serif;
+  line-height: 1.6;
+}
+
+/* ---------- アプリ全体 ---------- */
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+/* ---------- ヘッダー ---------- */
+.app-header {
+  background: var(--primary);
+  color: #fff;
+  padding: 12px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.app-header h1 {
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.header-nav {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.nav-btn {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 6px;
+  padding: 6px 14px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: background 0.15s;
+}
+
+.nav-btn:hover {
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.nav-btn.primary {
+  background: #fff;
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.nav-btn.sign-out {
+  background: rgba(239, 68, 68, 0.7);
+}
+
+/* ---------- メインコンテンツ ---------- */
+.app-main {
+  flex: 1;
+  max-width: 720px;
+  margin: 32px auto;
+  padding: 0 16px;
+  width: 100%;
+}
+
+/* ---------- ウェルカム・ホーム ---------- */
+.welcome,
+.home {
+  text-align: center;
+  padding: 48px 0;
+}
+
+.welcome h2 {
+  font-size: 1.5rem;
+  margin-bottom: 12px;
+}
+
+.welcome p,
+.home .user-info {
+  color: var(--text-muted);
+  margin-bottom: 24px;
+}
+
+.welcome-actions,
+.home-actions,
+.finish-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* ---------- 共通ボタン ---------- */
+.mode-btn {
+  background: #fff;
+  border: 2px solid var(--border);
+  color: var(--text);
+  border-radius: var(--radius);
+  padding: 12px 24px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  min-width: 160px;
+}
+
+.mode-btn:hover {
+  border-color: var(--primary);
+  background: #f0f9ff;
+}
+
+.mode-btn.primary {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+
+.mode-btn.primary:hover {
+  background: var(--primary-dark);
+  border-color: var(--primary-dark);
+}
+
+.mode-btn.warning {
+  border-color: var(--warning);
+  color: var(--warning);
+}
+
+.mode-btn.warning:hover {
+  background: #fffbeb;
+}
+
+/* ---------- モード選択 ---------- */
+.mode-select h2 {
+  font-size: 1.4rem;
+  margin-bottom: 24px;
+}
+
+.mode-select section {
+  margin-bottom: 24px;
+}
+
+.mode-select h3 {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.mode-select .mode-btn {
+  margin-right: 10px;
+  margin-bottom: 10px;
+}
+
+/* ---------- クイズカード ---------- */
+.quiz-card {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  padding: 28px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+/* 進捗バー */
+.progress-bar {
+  height: 6px;
+  background: var(--border);
+  border-radius: 3px;
+  margin-bottom: 8px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--primary);
+  border-radius: 3px;
+  transition: width 0.3s;
+}
+
+.progress-text {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-bottom: 16px;
+}
+
+/* カテゴリバッジ */
+.category-badge {
+  display: inline-block;
+  background: #e0f2fe;
+  color: var(--primary-dark);
+  border-radius: 4px;
+  padding: 2px 10px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+/* 問題文 */
+.question-text {
+  font-size: 1.1rem;
+  font-weight: 600;
+  line-height: 1.7;
+  margin-bottom: 20px;
+}
+
+/* 選択肢リスト */
+.choice-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* 選択肢ボタン */
+.choice-btn {
+  width: 100%;
+  text-align: left;
+  background: #fff;
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  transition: border-color 0.15s, background 0.15s;
+  line-height: 1.5;
+}
+
+.choice-btn:hover:not(:disabled) {
+  border-color: var(--primary);
+  background: #f0f9ff;
+}
+
+.choice-btn:disabled {
+  cursor: default;
+}
+
+.choice-btn.correct {
+  border-color: var(--correct);
+  background: #f0fdf4;
+  color: #166534;
+}
+
+.choice-btn.incorrect {
+  border-color: var(--incorrect);
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+/* 選択肢番号 */
+.choice-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  border-radius: 50%;
+  background: var(--border);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+/* ---------- 回答結果・解説 ---------- */
+.result-box {
+  margin-top: 20px;
+  padding: 16px;
+  border-radius: var(--radius);
+  border-left: 4px solid;
+}
+
+.result-box.correct {
+  background: #f0fdf4;
+  border-color: var(--correct);
+}
+
+.result-box.incorrect {
+  background: #fef2f2;
+  border-color: var(--incorrect);
+}
+
+.result-label {
+  font-weight: 700;
+  font-size: 1.05rem;
+  margin-bottom: 8px;
+}
+
+.result-box.correct .result-label { color: #166534; }
+.result-box.incorrect .result-label { color: #991b1b; }
+
+.explanation {
+  color: var(--text);
+  font-size: 0.9rem;
+  line-height: 1.7;
+  margin-bottom: 16px;
+}
+
+/* 次の問題ボタン */
+.next-btn {
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  padding: 10px 24px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.next-btn:hover {
+  background: var(--primary-dark);
+}
+
+/* ---------- クイズ終了 ---------- */
+.quiz-finish {
+  text-align: center;
+  padding: 40px 0;
+}
+
+.quiz-finish h2 {
+  font-size: 1.6rem;
+  margin-bottom: 16px;
+}
+
+.score {
+  font-size: 1.1rem;
+  color: var(--text-muted);
+  margin-bottom: 32px;
+}
+
+.score strong {
+  color: var(--primary);
+  font-size: 1.4rem;
+}
+
+/* ---------- カテゴリ別正解率 ---------- */
+.stats-container {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  padding: 28px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+.stats-container h2 {
+  font-size: 1.3rem;
+  margin-bottom: 24px;
+}
+
+.stat-row {
+  margin-bottom: 24px;
+}
+
+.stat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 6px;
+}
+
+.stat-category {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.stat-rate {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.stat-bar-bg {
+  height: 12px;
+  background: var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 4px;
+}
+
+.stat-bar-fill {
+  height: 100%;
+  border-radius: 6px;
+  transition: width 0.5s ease;
+}
+
+.stat-detail {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.stats-empty {
+  text-align: center;
+  padding: 48px 0;
+  color: var(--text-muted);
+}
+
+/* ---------- 共通 ---------- */
+.loading {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 48px 0;
+}
+
+.error-msg {
+  color: var(--incorrect);
+  text-align: center;
+  padding: 24px 0;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 40px 0;
+  color: var(--text-muted);
+}
+
+.empty-state .mode-btn {
+  margin-top: 16px;
+}

@@ -2,8 +2,10 @@ import { useState, useEffect } from 'react'
 import { supabase } from './lib/supabase'
 import { QuizScreen } from './components/QuizScreen'
 import { CategoryStats } from './components/CategoryStats'
+import { HomeScreen } from './components/HomeScreen'
 import './App.css'
 import type { User } from '@supabase/supabase-js'
+import type { QuizStart } from './types/database'
 
 // アプリ内の画面
 type Screen = 'home' | 'quiz' | 'stats'
@@ -12,6 +14,14 @@ function App() {
   const [user, setUser] = useState<User | null>(null)
   const [screen, setScreen] = useState<Screen>('home')
   const [authLoading, setAuthLoading] = useState(true)
+  // ホームからクイズを開始したときの設定（undefined ならモード選択から）
+  const [quizStart, setQuizStart] = useState<QuizStart | undefined>(undefined)
+
+  // ホームの導線からクイズを開始
+  const startQuiz = (start: QuizStart) => {
+    setQuizStart(start)
+    setScreen('quiz')
+  }
 
   // 認証状態を監視
   useEffect(() => {
@@ -74,7 +84,7 @@ function App() {
           {user ? (
             <>
               <button className="nav-btn" onClick={() => setScreen('home')}>ホーム</button>
-              <button className="nav-btn" onClick={() => setScreen('quiz')}>クイズ</button>
+              <button className="nav-btn" onClick={() => { setQuizStart(undefined); setScreen('quiz') }}>クイズ</button>
               <button className="nav-btn" onClick={() => setScreen('stats')}>成績</button>
               <button className="nav-btn sign-out" onClick={handleSignOut}>ログアウト</button>
             </>
@@ -103,24 +113,21 @@ function App() {
 
         {/* ホーム画面 */}
         {user && screen === 'home' && (
-          <div className="home">
-            <p className="user-info">ログイン中: {user.email}</p>
-            <div className="home-actions">
-              <button className="mode-btn primary" onClick={() => setScreen('quiz')}>
-                クイズを始める
-              </button>
-              <button className="mode-btn" onClick={() => setScreen('stats')}>
-                成績を確認する
-              </button>
-            </div>
-          </div>
+          <HomeScreen
+            userId={user.id}
+            email={user.email}
+            onStartQuiz={startQuiz}
+            onOpenStats={() => setScreen('stats')}
+          />
         )}
 
         {/* クイズ画面 */}
         {user && screen === 'quiz' && (
           <QuizScreen
+            key={quizStart ? JSON.stringify(quizStart) : 'manual'}
             userId={user.id}
-            onFinish={() => setScreen('stats')}
+            start={quizStart}
+            onFinish={() => setScreen(quizStart ? 'home' : 'stats')}
           />
         )}
 

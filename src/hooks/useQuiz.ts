@@ -1,6 +1,57 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
-import type { Question, UserProgress, CategoryStat, Category } from '../types/database'
+import type {
+  Question,
+  UserProgress,
+  CategoryStat,
+  Category,
+  CategoryProgress,
+  HomeData,
+} from '../types/database'
+
+const CATEGORIES: Category[] = ['医学・医療系', '情報処理技術系', '医療情報システム系']
+const DAY_MS = 86_400_000
+const MASTERED_STREAK = 3 // 連続正解がこの回数に達したら「克服」
+
+// --------------------
+// 復習スケジュールの計算
+// 間違えたら翌日に再出題。正解を重ねるほど間隔を延ばす（1→3→7→14日）。
+// --------------------
+export interface ScheduleFields {
+  streak: number
+  mastered: boolean
+  next_review_at: string
+  total_answers: number
+  correct_answers: number
+}
+
+function computeSchedule(
+  prev: { streak: number; total_answers: number; correct_answers: number },
+  isCorrect: boolean
+): ScheduleFields {
+  const total_answers = prev.total_answers + 1
+  const correct_answers = prev.correct_answers + (isCorrect ? 1 : 0)
+
+  if (!isCorrect) {
+    return {
+      streak: 0,
+      mastered: false,
+      next_review_at: new Date(Date.now() + DAY_MS).toISOString(),
+      total_answers,
+      correct_answers,
+    }
+  }
+
+  const streak = prev.streak + 1
+  const days = streak <= 1 ? 1 : streak === 2 ? 3 : streak === 3 ? 7 : 14
+  return {
+    streak,
+    mastered: streak >= MASTERED_STREAK,
+    next_review_at: new Date(Date.now() + days * DAY_MS).toISOString(),
+    total_answers,
+    correct_answers,
+  }
+}
 
 // --------------------
 // 問題一覧の取得（カテゴリ絞り込み対応）
@@ -39,9 +90,12 @@ export function useQuestions(category?: Category) {
 }
 
 // --------------------
-// 苦手問題（不正解の問題）のみ取得
+// 復習が必要な問題を取得（苦手問題優先システムの中核）
+//   - next_review_at を過ぎた未克服の問題
+//   - まだスケジュールされていないが最後の回答が不正解の問題
+// カテゴリで絞り込むこともできる。
 // --------------------
-export function useWeakQuestions(userId: string | null) {
+export function useReviewQuestions(userId: string | null, category?: Category) {
   const [questions, setQuestions] = useState<Question[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -52,16 +106,15 @@ export function useWeakQuestions(userId: string | null) {
       return
     }
 
-    const fetchWeakQuestions = async () => {
+    const fetchReview = async () => {
       setLoading(true)
       setError(null)
 
-      // 不正解の question_id を取得
-      const { data: progressData, error: progressError } = await supabase
+      const { data: progress, error: progressError } = await supabase
         .from('user_progress')
-        .select('question_id')
+        .select('question_id, mastered, next_review_at, is_correct')
         .eq('user_id', userId)
-        .eq('is_correct', false)
+        .eq('mastered', false)
 
       if (progressError) {
         setError(progressError.message)
@@ -69,20 +122,24 @@ export function useWeakQuestions(userId: string | null) {
         return
       }
 
-      const questionIds = (progressData ?? []).map((p) => p.question_id)
+      const now = Date.now()
+      const ids = (progress ?? [])
+        .filter(
+          (p) =>
+            !p.is_correct ||
+            (p.next_review_at != null && Date.parse(p.next_review_at) <= now)
+        )
+        .map((p) => p.question_id)
 
-      if (questionIds.length === 0) {
+      if (ids.length === 0) {
         setQuestions([])
         setLoading(false)
         return
       }
 
-      // 不正解の問題を取得
-      const { data, error } = await supabase
-        .from('questions')
-        .select('*')
-        .in('id', questionIds)
-        .order('created_at')
+      let query = supabase.from('questions').select('*').in('id', ids)
+      if (category) query = query.eq('category', category)
+      const { data, error } = await query.order('created_at')
 
       if (error) {
         setError(error.message)
@@ -92,14 +149,16 @@ export function useWeakQuestions(userId: string | null) {
       setLoading(false)
     }
 
-    fetchWeakQuestions()
-  }, [userId])
+    fetchReview()
+  }, [userId, category])
 
   return { questions, loading, error }
 }
 
 // --------------------
-// 回答を記録する（INSERT or UPDATE）
+// 回答を記録する
+//   1) answer_logs に追記（学習量の集計用）
+//   2) user_progress を更新（復習スケジュール・克服判定）
 // --------------------
 export function useRecordAnswer() {
   const [saving, setSaving] = useState(false)
@@ -110,13 +169,37 @@ export function useRecordAnswer() {
       setSaving(true)
       setError(null)
 
-      // user_id + question_id の一意制約を利用して upsert
+      const { error: logError } = await supabase.from('answer_logs').insert({
+        user_id: userId,
+        question_id: questionId,
+        is_correct: isCorrect,
+      })
+      if (logError) {
+        setError(logError.message)
+        setSaving(false)
+        return
+      }
+
+      // 現在のスケジュール状態を読み取ってから次回出題日を計算する
+      const { data: prev } = await supabase
+        .from('user_progress')
+        .select('streak, total_answers, correct_answers')
+        .eq('user_id', userId)
+        .eq('question_id', questionId)
+        .maybeSingle()
+
+      const schedule = computeSchedule(
+        prev ?? { streak: 0, total_answers: 0, correct_answers: 0 },
+        isCorrect
+      )
+
       const { error } = await supabase.from('user_progress').upsert(
         {
           user_id: userId,
           question_id: questionId,
           is_correct: isCorrect,
           answered_at: new Date().toISOString(),
+          ...schedule,
         },
         { onConflict: 'user_id,question_id' }
       )
@@ -217,6 +300,175 @@ export function useCategoryStats(userId: string | null) {
   }, [userId])
 
   return { stats, loading, error }
+}
+
+// --------------------
+// カテゴリ別の成長度（🌱 表示用）
+// そのカテゴリの全問題数のうち、いくつを克服したか。
+// --------------------
+export function useCategoryProgress(userId: string | null) {
+  const [progress, setProgress] = useState<CategoryProgress[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  const fetchProgress = useCallback(async () => {
+    if (!userId) {
+      setLoading(false)
+      return
+    }
+    setLoading(true)
+    setError(null)
+
+    const [questionsRes, progressRes] = await Promise.all([
+      supabase.from('questions').select('id, category'),
+      supabase
+        .from('user_progress')
+        .select('question_id, mastered')
+        .eq('user_id', userId),
+    ])
+
+    if (questionsRes.error || progressRes.error) {
+      setError(questionsRes.error?.message ?? progressRes.error?.message ?? '不明なエラー')
+      setLoading(false)
+      return
+    }
+
+    const catOf: Record<string, string> = {}
+    const totals: Record<string, number> = {}
+    for (const q of questionsRes.data ?? []) {
+      catOf[q.id] = q.category
+      totals[q.category] = (totals[q.category] ?? 0) + 1
+    }
+
+    const mastered: Record<string, number> = {}
+    const reviewing: Record<string, number> = {}
+    for (const p of progressRes.data ?? []) {
+      const cat = catOf[p.question_id]
+      if (!cat) continue
+      if (p.mastered) mastered[cat] = (mastered[cat] ?? 0) + 1
+      else reviewing[cat] = (reviewing[cat] ?? 0) + 1
+    }
+
+    setProgress(
+      CATEGORIES.map((category) => ({
+        category,
+        totalQuestions: totals[category] ?? 0,
+        mastered: mastered[category] ?? 0,
+        reviewing: reviewing[category] ?? 0,
+      }))
+    )
+    setLoading(false)
+  }, [userId])
+
+  useEffect(() => {
+    fetchProgress()
+  }, [fetchProgress])
+
+  return { progress, loading, error, refetch: fetchProgress }
+}
+
+// --------------------
+// ホーム画面用のまとめデータ
+// --------------------
+export function useHomeData(userId: string | null) {
+  const [data, setData] = useState<HomeData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  const fetchHome = useCallback(async () => {
+    if (!userId) {
+      setLoading(false)
+      return
+    }
+    setLoading(true)
+    setError(null)
+
+    const startOfToday = new Date()
+    startOfToday.setHours(0, 0, 0, 0)
+
+    const [questionsRes, progressRes, logsRes] = await Promise.all([
+      supabase.from('questions').select('id, category'),
+      supabase
+        .from('user_progress')
+        .select('question_id, mastered, next_review_at, is_correct')
+        .eq('user_id', userId),
+      supabase
+        .from('answer_logs')
+        .select('question_id, is_correct')
+        .eq('user_id', userId)
+        .gte('answered_at', startOfToday.toISOString()),
+    ])
+
+    if (questionsRes.error || progressRes.error || logsRes.error) {
+      setError(
+        questionsRes.error?.message ??
+          progressRes.error?.message ??
+          logsRes.error?.message ??
+          '不明なエラー'
+      )
+      setLoading(false)
+      return
+    }
+
+    const catOf: Record<string, string> = {}
+    const totals: Record<string, number> = {}
+    const answeredByCat: Record<string, number> = {}
+    for (const q of questionsRes.data ?? []) {
+      catOf[q.id] = q.category
+      totals[q.category] = (totals[q.category] ?? 0) + 1
+    }
+
+    // 今日の学習
+    const todayCount = logsRes.data?.length ?? 0
+    const todayCorrect = (logsRes.data ?? []).filter((l) => l.is_correct).length
+
+    // カテゴリ別・復習待ち / 成長度
+    const now = Date.now()
+    const dueByCategory: Record<string, number> = {}
+    const masteredByCat: Record<string, number> = {}
+    const reviewingByCat: Record<string, number> = {}
+    for (const p of progressRes.data ?? []) {
+      const cat = catOf[p.question_id]
+      if (!cat) continue
+      answeredByCat[cat] = (answeredByCat[cat] ?? 0) + 1
+      if (p.mastered) {
+        masteredByCat[cat] = (masteredByCat[cat] ?? 0) + 1
+      } else {
+        reviewingByCat[cat] = (reviewingByCat[cat] ?? 0) + 1
+        const due =
+          !p.is_correct ||
+          (p.next_review_at != null && Date.parse(p.next_review_at) <= now)
+        if (due) dueByCategory[cat] = (dueByCategory[cat] ?? 0) + 1
+      }
+    }
+
+    // おすすめ = まだ手をつけていない問題が最も多いカテゴリ
+    let recommended: HomeData['recommended'] = null
+    let bestUntouched = 0
+    for (const category of CATEGORIES) {
+      const untouched = (totals[category] ?? 0) - (answeredByCat[category] ?? 0)
+      if (untouched > bestUntouched) {
+        bestUntouched = untouched
+        recommended = { category, count: Math.min(untouched, 5) }
+      }
+    }
+
+    const progress: CategoryProgress[] = CATEGORIES.map((category) => ({
+      category,
+      totalQuestions: totals[category] ?? 0,
+      mastered: masteredByCat[category] ?? 0,
+      reviewing: reviewingByCat[category] ?? 0,
+    }))
+
+    setData({ todayCount, todayCorrect, dueByCategory, recommended, progress })
+    setLoading(false)
+  }, [userId])
+
+  useEffect(() => {
+    fetchHome()
+  }, [fetchHome])
+
+  return { data, loading, error, refetch: fetchHome }
 }
 
 // --------------------

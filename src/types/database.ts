@@ -20,6 +20,20 @@ export interface UserProgress {
   id: string
   user_id: string
   question_id: string
+  is_correct: boolean          // 最後の回答が正解だったか
+  answered_at: string          // 最後に回答した日時
+  streak: number               // 現在の連続正解数
+  mastered: boolean            // 克服フラグ（連続3回正解）
+  next_review_at: string | null // 次に出題してよい日時（null=未スケジュール）
+  total_answers: number        // この問題への累計回答数
+  correct_answers: number      // この問題への累計正解数
+}
+
+// 全回答の追記ログ
+export interface AnswerLog {
+  id: string
+  user_id: string
+  question_id: string
   is_correct: boolean
   answered_at: string
 }
@@ -36,9 +50,10 @@ export interface Database {
       }
       user_progress: {
         Row: UserProgress
-        // answered_at はデフォルト値があるため省略可能
-        Insert: Omit<UserProgress, 'id'> & { answered_at?: string }
-        Update: Partial<Pick<UserProgress, 'is_correct' | 'answered_at'>>
+        // DEFAULT を持つカラムは省略可能
+        Insert: Pick<UserProgress, 'user_id' | 'question_id' | 'is_correct'> &
+          Partial<Omit<UserProgress, 'id' | 'user_id' | 'question_id' | 'is_correct'>>
+        Update: Partial<Omit<UserProgress, 'id' | 'user_id' | 'question_id'>>
         Relationships: [
           {
             foreignKeyName: 'user_progress_question_id_fkey'
@@ -47,6 +62,14 @@ export interface Database {
             referencedColumns: ['id']
           }
         ]
+      }
+      answer_logs: {
+        Row: AnswerLog
+        Insert: Pick<AnswerLog, 'user_id' | 'question_id' | 'is_correct'> & {
+          answered_at?: string
+        }
+        Update: Partial<Pick<AnswerLog, 'is_correct' | 'answered_at'>>
+        Relationships: []
       }
     }
     Views: Record<string, never>
@@ -66,3 +89,27 @@ export interface CategoryStat {
 
 // クイズ画面で使う回答状態
 export type AnswerState = 'unanswered' | 'correct' | 'incorrect'
+
+// カテゴリ別の成長度（🌱 表示用）
+export interface CategoryProgress {
+  category: Category
+  totalQuestions: number   // そのカテゴリの全問題数
+  mastered: number         // 克服済み問題数
+  reviewing: number        // 苦手（未克服で回答済み）問題数
+}
+
+// ホーム画面用のまとめデータ
+export interface HomeData {
+  todayCount: number                     // 今日解いた問題数
+  todayCorrect: number                   // 今日の正解数
+  dueByCategory: Record<string, number>  // カテゴリ別・復習待ち問題数
+  recommended: { category: Category; count: number } | null
+  progress: CategoryProgress[]
+}
+
+// クイズの開始設定（ホームからの導線用）
+export interface QuizStart {
+  mode: 'all' | 'category' | 'review'
+  category?: Category
+  limit?: number
+}

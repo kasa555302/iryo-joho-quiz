@@ -32,7 +32,15 @@ export function FlashCard({
       <div className="flashcard">
         <p className="flashcard-term">{question.question}</p>
         {revealed ? (
-          <p className="flashcard-meaning">{question.explanation}</p>
+          <>
+            <p className="flashcard-meaning">{question.explanation}</p>
+            {question.explanation_easy && (
+              <div className="easy-note">
+                <p className="easy-label">やさしく言うと</p>
+                <p className="easy-body">{question.explanation_easy}</p>
+              </div>
+            )}
+          </>
         ) : (
           <button className="next-btn" onClick={() => setRevealed(true)}>
             答えを見る

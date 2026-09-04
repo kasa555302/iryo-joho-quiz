@@ -16,6 +16,7 @@ export interface Question {
   answer: number | null        // 5択は1〜5、○×は1(正しい)/2(誤り)、用語カードはnull
   category: Category
   explanation: string          // 解説。用語カードでは意味（裏）
+  explanation_easy: string | null // 超初心者向けのやさしい説明（任意）
   created_at: string
 }
 

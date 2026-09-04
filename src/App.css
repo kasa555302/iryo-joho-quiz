@@ -416,6 +416,34 @@ body {
   margin-bottom: 16px;
 }
 
+/* やさしい解説ボックス */
+.easy-note {
+  background: #ecfeff;
+  border: 1px solid #a5f3fc;
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  margin-bottom: 12px;
+  text-align: left;
+}
+
+.easy-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #0e7490;
+  margin-bottom: 4px;
+}
+
+.easy-body {
+  font-size: 0.9rem;
+  line-height: 1.75;
+  color: var(--text);
+}
+
+.flashcard .easy-note {
+  margin-top: 12px;
+  margin-bottom: 0;
+}
+
 /* 次の問題ボタン */
 .next-btn {
   background: var(--primary);

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { AnswerState, QuizCardProps } from '../types/database'
 import { CardShell } from './CardShell'
 import { Character } from './Character'
+import { ExplanationBlock } from './ExplanationBlock'
 
 // ○×問題（answer: 1=正しい / 2=誤り）
 export function TrueFalseCard({
@@ -64,7 +65,7 @@ export function TrueFalseCard({
           <Character
             mood={state === 'incorrect' ? 'incorrect' : streak >= 3 ? 'streak' : 'correct'}
           />
-          <p className="explanation">{question.explanation}</p>
+          <ExplanationBlock easy={question.explanation_easy} full={question.explanation} />
           <button className="next-btn" onClick={onNext}>
             次の問題へ →
           </button>

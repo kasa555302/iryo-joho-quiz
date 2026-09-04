@@ -42,6 +42,9 @@ create policy "answer_logs_insert_own"
   on public.answer_logs for insert
   with check (auth.uid() = user_id);
 
+-- テーブルレベルの権限（RLS の前にこれが無いと permission denied になる）
+grant select, insert on public.answer_logs to authenticated;
+
 create index if not exists idx_answer_logs_user_answered
   on public.answer_logs (user_id, answered_at desc);
 
@@ -72,7 +75,7 @@ create index if not exists idx_user_progress_review
 -- ============================================================
 -- «ROLLBACK»  ← 元に戻す場合はここから下だけを実行
 -- ============================================================
--- drop table if exists public.answer_logs;
+-- drop table if exists public.answer_logs;  -- GRANT も一緒に消える
 -- alter table public.user_progress
 --   drop column if exists streak,
 --   drop column if exists mastered,

@@ -3,8 +3,8 @@ import type { AnswerState, QuizCardProps } from '../types/database'
 import { CardShell } from './CardShell'
 import { Character } from './Character'
 
-// 5択問題
-export function QuizCard({
+// ○×問題（answer: 1=正しい / 2=誤り）
+export function TrueFalseCard({
   question,
   questionIndex,
   totalCount,
@@ -15,28 +15,20 @@ export function QuizCard({
   const [selected, setSelected] = useState<number | null>(null)
   const [state, setState] = useState<AnswerState>('unanswered')
 
-  const choices = [
-    question.choice1,
-    question.choice2,
-    question.choice3,
-    question.choice4,
-    question.choice5,
-  ]
-
-  const handleSelect = (choiceIndex: number) => {
+  const handleSelect = (value: number) => {
     if (state !== 'unanswered') return
 
-    const isCorrect = choiceIndex + 1 === question.answer
-    setSelected(choiceIndex)
+    const isCorrect = value === question.answer
+    setSelected(value)
     setState(isCorrect ? 'correct' : 'incorrect')
-    onAnswer(choiceIndex + 1, isCorrect)
+    onAnswer(value, isCorrect)
   }
 
-  const getChoiceStyle = (index: number): string => {
-    const base = 'choice-btn'
+  const styleFor = (value: number): string => {
+    const base = 'tf-btn'
     if (state === 'unanswered') return base
-    if (index + 1 === question.answer) return `${base} correct`
-    if (index === selected) return `${base} incorrect`
+    if (value === question.answer) return `${base} correct`
+    if (value === selected) return `${base} incorrect`
     return base
   }
 
@@ -46,22 +38,25 @@ export function QuizCard({
       totalCount={totalCount}
       category={question.category}
     >
+      <span className="type-badge">○× 問題</span>
       <h2 className="question-text">{question.question}</h2>
 
-      <ol className="choice-list">
-        {choices.map((choice, index) => (
-          <li key={index}>
-            <button
-              className={getChoiceStyle(index)}
-              onClick={() => handleSelect(index)}
-              disabled={state !== 'unanswered'}
-            >
-              <span className="choice-num">{index + 1}</span>
-              {choice}
-            </button>
-          </li>
-        ))}
-      </ol>
+      <div className="tf-buttons">
+        <button
+          className={styleFor(1)}
+          onClick={() => handleSelect(1)}
+          disabled={state !== 'unanswered'}
+        >
+          ○ 正しい
+        </button>
+        <button
+          className={styleFor(2)}
+          onClick={() => handleSelect(2)}
+          disabled={state !== 'unanswered'}
+        >
+          ✕ 誤り
+        </button>
+      </div>
 
       {state !== 'unanswered' && (
         <div className={`result-box ${state}`}>

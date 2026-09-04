@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react'
 import { QuizCard } from './QuizCard'
+import { TrueFalseCard } from './TrueFalseCard'
+import { FlashCard } from './FlashCard'
 import { useQuestions, useReviewQuestions, useRecordAnswer } from '../hooks/useQuiz'
 import { Character } from './Character'
 import type { Category, QuizStart } from '../types/database'
@@ -168,8 +170,15 @@ export function QuizScreen({ userId, onFinish, start }: Props) {
     setCurrentIndex((i) => i + 1)
   }
 
+  const Card =
+    currentQuestion.type === '○×'
+      ? TrueFalseCard
+      : currentQuestion.type === '用語カード'
+        ? FlashCard
+        : QuizCard
+
   return (
-    <QuizCard
+    <Card
       key={currentQuestion.id}
       question={currentQuestion}
       questionIndex={currentIndex}

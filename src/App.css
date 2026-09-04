@@ -298,6 +298,90 @@ body {
   font-weight: 700;
 }
 
+/* 問題形式バッジ */
+.type-badge {
+  display: inline-block;
+  background: #ede9fe;
+  color: #6d28d9;
+  border-radius: 4px;
+  padding: 2px 10px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin: 0 0 12px 8px;
+}
+
+/* ○× ボタン / 用語カードの採点ボタン */
+.tf-buttons {
+  display: flex;
+  gap: 12px;
+}
+
+.tf-btn {
+  flex: 1;
+  background: #fff;
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 12px;
+  font-size: 1.05rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.tf-btn:hover:not(:disabled) {
+  border-color: var(--primary);
+  background: #f0f9ff;
+}
+
+.tf-btn:disabled {
+  cursor: default;
+}
+
+.tf-btn.correct {
+  border-color: var(--correct);
+  background: #f0fdf4;
+  color: #166534;
+}
+
+.tf-btn.incorrect {
+  border-color: var(--incorrect);
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+/* 用語カード */
+.flashcard {
+  background: #f8fafc;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 32px 20px;
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.flashcard-term {
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin-bottom: 20px;
+}
+
+.flashcard-meaning {
+  font-size: 0.95rem;
+  line-height: 1.8;
+  text-align: left;
+}
+
+.flashcard-grade {
+  margin-top: 8px;
+}
+
+.flashcard-ask {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  text-align: center;
+  margin-bottom: 10px;
+}
+
 /* ---------- 回答結果・解説 ---------- */
 .result-box {
   margin-top: 20px;

@@ -2,17 +2,20 @@
 
 export type Category = '医学・医療系' | '情報処理技術系' | '医療情報システム系'
 
+export type QuestionType = '5択' | '○×' | '用語カード'
+
 export interface Question {
   id: string
-  question: string
-  choice1: string
-  choice2: string
-  choice3: string
-  choice4: string
-  choice5: string
-  answer: number          // 1〜5
+  type: QuestionType
+  question: string             // 5択/○×は問題文、用語カードは用語（表）
+  choice1: string | null
+  choice2: string | null
+  choice3: string | null
+  choice4: string | null
+  choice5: string | null
+  answer: number | null        // 5択は1〜5、○×は1(正しい)/2(誤り)、用語カードはnull
   category: Category
-  explanation: string
+  explanation: string          // 解説。用語カードでは意味（裏）
   created_at: string
 }
 
@@ -44,7 +47,7 @@ export interface Database {
     Tables: {
       questions: {
         Row: Question
-        Insert: Omit<Question, 'id' | 'created_at'>
+        Insert: Omit<Question, 'id' | 'created_at' | 'type'> & { type?: QuestionType }
         Update: Partial<Omit<Question, 'id' | 'created_at'>>
         Relationships: []
       }
@@ -105,6 +108,16 @@ export interface HomeData {
   dueByCategory: Record<string, number>  // カテゴリ別・復習待ち問題数
   recommended: { category: Category; count: number } | null
   progress: CategoryProgress[]
+}
+
+// 各問題形式のカードで共通の Props
+export interface QuizCardProps {
+  question: Question
+  questionIndex: number
+  totalCount: number
+  streak?: number
+  onAnswer: (selectedChoice: number, isCorrect: boolean) => void
+  onNext: () => void
 }
 
 // クイズの開始設定（ホームからの導線用）

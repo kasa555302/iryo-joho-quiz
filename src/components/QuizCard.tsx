@@ -1,15 +1,24 @@
 import { useState } from 'react'
 import type { Question, AnswerState } from '../types/database'
+import { Character } from './Character'
 
 interface Props {
   question: Question
   questionIndex: number
   totalCount: number
+  streak?: number // 現在の連続正解数（応援メッセージの出し分け用）
   onAnswer: (selectedChoice: number, isCorrect: boolean) => void
   onNext: () => void
 }
 
-export function QuizCard({ question, questionIndex, totalCount, onAnswer, onNext }: Props) {
+export function QuizCard({
+  question,
+  questionIndex,
+  totalCount,
+  streak = 0,
+  onAnswer,
+  onNext,
+}: Props) {
   const [selected, setSelected] = useState<number | null>(null)
   const [state, setState] = useState<AnswerState>('unanswered')
 
@@ -81,7 +90,10 @@ export function QuizCard({ question, questionIndex, totalCount, onAnswer, onNext
       {/* 回答後に解説を表示 */}
       {state !== 'unanswered' && (
         <div className={`result-box ${state}`}>
-          <p className="result-label">{state === 'correct' ? '✓ 正解！' : '✗ 不正解'}</p>
+          <p className="result-label">{state === 'correct' ? '✓ 正解！' : 'もう一歩！'}</p>
+          <Character
+            mood={state === 'incorrect' ? 'incorrect' : streak >= 3 ? 'streak' : 'correct'}
+          />
           <p className="explanation">{question.explanation}</p>
           <button className="next-btn" onClick={onNext}>
             次の問題へ →

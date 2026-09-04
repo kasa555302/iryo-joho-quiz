@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { QuizCard } from './QuizCard'
 import { useQuestions, useReviewQuestions, useRecordAnswer } from '../hooks/useQuiz'
+import { Character } from './Character'
 import type { Category, QuizStart } from '../types/database'
 
 interface Props {
@@ -16,6 +17,7 @@ export function QuizScreen({ userId, onFinish, start }: Props) {
   const [active, setActive] = useState<QuizStart | null>(start ?? null)
   const [currentIndex, setCurrentIndex] = useState(0)
   const [correctCount, setCorrectCount] = useState(0)
+  const [streak, setStreak] = useState(0)
 
   const { recordAnswer } = useRecordAnswer()
 
@@ -36,6 +38,7 @@ export function QuizScreen({ userId, onFinish, start }: Props) {
     setActive(next)
     setCurrentIndex(0)
     setCorrectCount(0)
+    setStreak(0)
   }
 
   const backToMenu = () => {
@@ -46,6 +49,7 @@ export function QuizScreen({ userId, onFinish, start }: Props) {
       setActive(null)
       setCurrentIndex(0)
       setCorrectCount(0)
+      setStreak(0)
     }
   }
 
@@ -101,6 +105,7 @@ export function QuizScreen({ userId, onFinish, start }: Props) {
             ? '今日復習する問題はありません。よくできています！'
             : '問題が見つかりませんでした。'}
         </p>
+        {active.mode === 'review' && <Character mood="finish" message="苦手、しっかり克服できてるよ！" />}
         <button className="mode-btn" onClick={backToMenu}>
           戻る
         </button>
@@ -113,6 +118,16 @@ export function QuizScreen({ userId, onFinish, start }: Props) {
     return (
       <div className="quiz-finish">
         <h2>今日も一歩前進！</h2>
+        <Character
+          mood="finish"
+          message={
+            correctCount === pool.length
+              ? '全問正解！すごい！'
+              : correctCount === 0
+                ? 'おつかれさま。ここが伸びしろだよ'
+                : `${pool.length} 問中 ${correctCount} 問正解！よくがんばったね`
+          }
+        />
         <p className="score">
           {pool.length} 問中 <strong>{correctCount} 問</strong> 正解
           （正解率: {Math.round((correctCount / pool.length) * 100)}%）
@@ -123,6 +138,7 @@ export function QuizScreen({ userId, onFinish, start }: Props) {
             onClick={() => {
               setCurrentIndex(0)
               setCorrectCount(0)
+              setStreak(0)
             }}
           >
             もう一度
@@ -139,8 +155,13 @@ export function QuizScreen({ userId, onFinish, start }: Props) {
   const currentQuestion = pool[currentIndex]
 
   const handleAnswer = async (_selectedChoice: number, isCorrect: boolean) => {
+    if (isCorrect) {
+      setCorrectCount((c) => c + 1)
+      setStreak((s) => s + 1)
+    } else {
+      setStreak(0)
+    }
     await recordAnswer(userId, currentQuestion.id, isCorrect)
-    if (isCorrect) setCorrectCount((c) => c + 1)
   }
 
   const handleNext = () => {
@@ -153,6 +174,7 @@ export function QuizScreen({ userId, onFinish, start }: Props) {
       question={currentQuestion}
       questionIndex={currentIndex}
       totalCount={pool.length}
+      streak={streak}
       onAnswer={handleAnswer}
       onNext={handleNext}
     />

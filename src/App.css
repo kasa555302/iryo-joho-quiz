@@ -430,6 +430,48 @@ body {
   color: var(--text-muted);
 }
 
+/* ---------- 応援マスコット ---------- */
+.mascot {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  margin: 12px 0;
+  text-align: left;
+}
+
+.mascot-incorrect {
+  background: #fffbeb;
+  border-color: #fde68a;
+}
+
+.mascot-streak,
+.mascot-finish {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+}
+
+.mascot-face {
+  font-size: 1.8rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.mascot-bubble {
+  font-size: 0.9rem;
+  color: var(--text);
+  margin: 0;
+}
+
+.quiz-finish .mascot,
+.empty-state .mascot {
+  display: inline-flex;
+  margin: 12px auto 20px;
+}
+
 /* ---------- ホームダッシュボード ---------- */
 .home-dash {
   display: flex;

@@ -1,4 +1,5 @@
 import { useHomeData } from '../hooks/useQuiz'
+import { Character } from './Character'
 import type { CategoryProgress, QuizStart } from '../types/database'
 
 interface Props {
@@ -38,6 +39,15 @@ export function HomeScreen({ userId, email, onStartQuiz, onOpenStats }: Props) {
   return (
     <div className="home-dash">
       {email && <p className="user-info">ログイン中: {email}</p>}
+
+      <Character
+        mood={data.todayCount > 0 ? 'correct' : 'idle'}
+        message={
+          data.todayCount > 0
+            ? `今日はもう ${data.todayCount} 問。いい調子だね！`
+            : '今日は1問だけでも、一緒にやってみよう！'
+        }
+      />
 
       {/* 今日の学習 */}
       <section className="dash-card">

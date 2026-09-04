@@ -54,39 +54,106 @@ function computeSchedule(
 }
 
 // --------------------
-// 問題一覧の取得（カテゴリ絞り込み対応）
+// 「復習が必要な問題」の判定（復習モードと全問/カテゴリ別モードで共通利用）
+//   未克服 かつ（最後の回答が不正解 または 次回出題日時を過ぎている）
+// ※ この関数が唯一の判定箇所。条件を書き分けてズレが生じないようにする。
 // --------------------
-export function useQuestions(category?: Category) {
+export function isDueForReview(
+  progress: Pick<UserProgress, 'mastered' | 'is_correct' | 'next_review_at'>,
+  now: number = Date.now()
+): boolean {
+  if (progress.mastered) return false
+  return (
+    !progress.is_correct ||
+    (progress.next_review_at != null && Date.parse(progress.next_review_at) <= now)
+  )
+}
+
+// Fisher-Yates シャッフル（元配列は変更しない）
+function shuffle<T>(items: T[]): T[] {
+  const a = [...items]
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[a[i], a[j]] = [a[j], a[i]]
+  }
+  return a
+}
+
+// --------------------
+// 「全問題」「カテゴリ別」モードの出題プールを、次の優先順位で並べて返す。
+//   ① 未回答（user_progress に行がない）    … 最優先・ランダム順
+//   ② 復習が必要（isDueForReview が真）      … 次点・ランダム順
+//   ③ それ以外（克服済み・正解済みで期日前） … 残り全部・ランダム順
+// ①→②→③ の順に連結して返す。実際の出題数の絞り込み（limit 件の
+// 切り出し）は呼び出し側（QuizScreen の pool）が slice(0, limit) で行う。
+// 連結済み配列を前から切り出すため、
+//   ・① だけで limit を超える → ① からランダムに limit 件
+//   ・①+② で超える           → ③ は混ざらない
+// が自動的に満たされる。②③ の件数・割合の上限は設けない。
+// --------------------
+export function usePrioritizedQuestions(userId: string | null, category?: Category) {
   const [questions, setQuestions] = useState<Question[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchQuestions = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-
-    let query = supabase.from('questions').select('*').order('created_at')
-
-    // カテゴリが指定されている場合は絞り込む
-    if (category) {
-      query = query.eq('category', category)
-    }
-
-    const { data, error } = await query
-
-    if (error) {
-      setError(error.message)
-    } else {
-      setQuestions(data ?? [])
-    }
-    setLoading(false)
-  }, [category])
-
   useEffect(() => {
-    fetchQuestions()
-  }, [fetchQuestions])
+    if (!userId) {
+      setLoading(false)
+      return
+    }
 
-  return { questions, loading, error, refetch: fetchQuestions }
+    const run = async () => {
+      setLoading(true)
+      setError(null)
+
+      let questionQuery = supabase.from('questions').select('*')
+      if (category) questionQuery = questionQuery.eq('category', category)
+
+      const [questionsRes, progressRes] = await Promise.all([
+        questionQuery,
+        supabase
+          .from('user_progress')
+          .select('question_id, mastered, is_correct, next_review_at')
+          .eq('user_id', userId),
+      ])
+
+      if (questionsRes.error || progressRes.error) {
+        setError(
+          questionsRes.error?.message ?? progressRes.error?.message ?? '不明なエラー'
+        )
+        setLoading(false)
+        return
+      }
+
+      const progressByQid = new Map(
+        (progressRes.data ?? []).map((p) => [p.question_id, p])
+      )
+      const now = Date.now()
+
+      const unanswered: Question[] = []
+      const review: Question[] = []
+      const rest: Question[] = []
+
+      for (const q of questionsRes.data ?? []) {
+        const p = progressByQid.get(q.id)
+        if (!p) {
+          unanswered.push(q)
+        } else if (isDueForReview(p, now)) {
+          review.push(q)
+        } else {
+          rest.push(q)
+        }
+      }
+
+      // 各段階をシャッフルしてから ①→②→③ の順に連結（この順序は崩さない）
+      setQuestions([...shuffle(unanswered), ...shuffle(review), ...shuffle(rest)])
+      setLoading(false)
+    }
+
+    run()
+  }, [userId, category])
+
+  return { questions, loading, error }
 }
 
 // --------------------
@@ -123,12 +190,9 @@ export function useReviewQuestions(userId: string | null, category?: Category) {
       }
 
       const now = Date.now()
+      // 判定は isDueForReview に一本化（.eq('mastered', false) 済みなので結果は従来と同一）
       const ids = (progress ?? [])
-        .filter(
-          (p) =>
-            !p.is_correct ||
-            (p.next_review_at != null && Date.parse(p.next_review_at) <= now)
-        )
+        .filter((p) => isDueForReview(p, now))
         .map((p) => p.question_id)
 
       if (ids.length === 0) {

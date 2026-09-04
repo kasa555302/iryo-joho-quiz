@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { QuizCard } from './QuizCard'
 import { TrueFalseCard } from './TrueFalseCard'
 import { FlashCard } from './FlashCard'
-import { useQuestions, useReviewQuestions, useRecordAnswer } from '../hooks/useQuiz'
+import { usePrioritizedQuestions, useReviewQuestions, useRecordAnswer } from '../hooks/useQuiz'
 import { Character } from './Character'
 import type { Category, QuizStart } from '../types/database'
 
@@ -26,13 +26,16 @@ export function QuizScreen({ userId, onFinish, start }: Props) {
   const { recordAnswer } = useRecordAnswer()
 
   const category = active?.mode === 'category' || active?.mode === 'review' ? active.category : undefined
-  const allQuery = useQuestions(active?.mode === 'category' ? category : undefined)
+  // 「全問題」「カテゴリ別」= 未回答→復習必要→それ以外 の優先順位で並んだプール
+  const allQuery = usePrioritizedQuestions(userId, active?.mode === 'category' ? category : undefined)
   const reviewQuery = useReviewQuestions(userId, active?.mode === 'review' ? category : undefined)
 
   const { questions, loading, error } =
     active?.mode === 'review' ? reviewQuery : allQuery
 
-  // 出題数の上限（「3問だけ」などスキマ学習用）
+  // 出題数の上限（「3問だけ」などスキマ学習用）。
+  // questions は既に優先順位順に並んでいるので、前から limit 件を取れば
+  // ①未回答→②復習必要→③それ以外 の順で枠が埋まる。
   const pool = useMemo(
     () => (active?.limit ? questions.slice(0, active.limit) : questions),
     [questions, active]

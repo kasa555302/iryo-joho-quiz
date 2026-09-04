@@ -165,6 +165,34 @@ body {
   background: #fffbeb;
 }
 
+/* ---------- 出題数チップ ---------- */
+.limit-picker {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.chip {
+  background: #fff;
+  border: 2px solid var(--border);
+  color: var(--text);
+  border-radius: 999px;
+  padding: 6px 16px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.chip:hover {
+  border-color: var(--primary);
+}
+
+.chip.selected {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+
 /* ---------- モード選択 ---------- */
 .mode-select h2 {
   font-size: 1.4rem;

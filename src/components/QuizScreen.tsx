@@ -20,6 +20,8 @@ export function QuizScreen({ userId, onFinish, start }: Props) {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [correctCount, setCorrectCount] = useState(0)
   const [streak, setStreak] = useState(0)
+  // モード選択画面での出題数（スキマ学習用。undefined = 全部）
+  const [limit, setLimit] = useState<number | undefined>(5)
 
   const { recordAnswer } = useRecordAnswer()
 
@@ -62,12 +64,33 @@ export function QuizScreen({ userId, onFinish, start }: Props) {
         <h2>クイズモードを選択</h2>
 
         <section>
+          <h3>出題数（スキマ時間に）</h3>
+          <div className="limit-picker">
+            {[1, 3, 5, 10].map((n) => (
+              <button
+                key={n}
+                className={`chip ${limit === n ? 'selected' : ''}`}
+                onClick={() => setLimit(n)}
+              >
+                {n}問
+              </button>
+            ))}
+            <button
+              className={`chip ${limit === undefined ? 'selected' : ''}`}
+              onClick={() => setLimit(undefined)}
+            >
+              全部
+            </button>
+          </div>
+        </section>
+
+        <section>
           <h3>カテゴリ別</h3>
           {CATEGORIES.map((cat) => (
             <button
               key={cat}
               className="mode-btn"
-              onClick={() => begin({ mode: 'category', category: cat })}
+              onClick={() => begin({ mode: 'category', category: cat, limit })}
             >
               {cat}
             </button>
@@ -76,14 +99,14 @@ export function QuizScreen({ userId, onFinish, start }: Props) {
 
         <section>
           <h3>全問題</h3>
-          <button className="mode-btn primary" onClick={() => begin({ mode: 'all' })}>
+          <button className="mode-btn primary" onClick={() => begin({ mode: 'all', limit })}>
             全カテゴリから出題
           </button>
         </section>
 
         <section>
           <h3>苦手復習モード</h3>
-          <button className="mode-btn warning" onClick={() => begin({ mode: 'review' })}>
+          <button className="mode-btn warning" onClick={() => begin({ mode: 'review', limit })}>
             復習が必要な問題を出題
           </button>
         </section>

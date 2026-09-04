@@ -61,11 +61,14 @@ export function HomeScreen({ userId, email, onStartQuiz, onOpenStats }: Props) {
           </p>
         )}
         <div className="dash-actions">
-          <button className="mode-btn primary" onClick={() => onStartQuiz({ mode: 'all', limit: 3 })}>
-            1分だけ（3問）
+          <button className="mode-btn primary" onClick={() => onStartQuiz({ mode: 'all', limit: 1 })}>
+            1問だけ
+          </button>
+          <button className="mode-btn" onClick={() => onStartQuiz({ mode: 'all', limit: 3 })}>
+            3問（1分）
           </button>
           <button className="mode-btn" onClick={() => onStartQuiz({ mode: 'all', limit: 5 })}>
-            5問やる
+            5問
           </button>
         </div>
       </section>

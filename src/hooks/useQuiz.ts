@@ -499,10 +499,8 @@ export function useHomeData(userId: string | null) {
         masteredByCat[cat] = (masteredByCat[cat] ?? 0) + 1
       } else {
         reviewingByCat[cat] = (reviewingByCat[cat] ?? 0) + 1
-        const due =
-          !p.is_correct ||
-          (p.next_review_at != null && Date.parse(p.next_review_at) <= now)
-        if (due) dueByCategory[cat] = (dueByCategory[cat] ?? 0) + 1
+        // 判定は isDueForReview に一本化（この分岐は mastered=false のため結果は従来と同一）
+        if (isDueForReview(p, now)) dueByCategory[cat] = (dueByCategory[cat] ?? 0) + 1
       }
     }
 

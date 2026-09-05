@@ -80,6 +80,24 @@ function shuffle<T>(items: T[]): T[] {
 }
 
 // --------------------
+// 合格済みカテゴリ（user_passed_categories）を Set で取得する共通ヘルパー。
+// 出題対象から除外するために使う。0件（誰も合格登録していない）なら
+// 空の Set が返り、以降のフィルタは常に no-op になる。
+// --------------------
+async function fetchPassedCategorySet(userId: string): Promise<{
+  passed: Set<string>
+  error: string | null
+}> {
+  const { data, error } = await supabase
+    .from('user_passed_categories')
+    .select('category')
+    .eq('user_id', userId)
+
+  if (error) return { passed: new Set(), error: error.message }
+  return { passed: new Set((data ?? []).map((r) => r.category as string)), error: null }
+}
+
+// --------------------
 // 「全問題」「カテゴリ別」モードの出題プールを、次の優先順位で並べて返す。
 //   ① 未回答（user_progress に行がない）    … 最優先・ランダム順
 //   ② 復習が必要（isDueForReview が真）      … 次点・ランダム順
@@ -109,21 +127,27 @@ export function usePrioritizedQuestions(userId: string | null, category?: Catego
       let questionQuery = supabase.from('questions').select('*')
       if (category) questionQuery = questionQuery.eq('category', category)
 
-      const [questionsRes, progressRes] = await Promise.all([
+      const [questionsRes, progressRes, passedRes] = await Promise.all([
         questionQuery,
         supabase
           .from('user_progress')
           .select('question_id, mastered, is_correct, next_review_at')
           .eq('user_id', userId),
+        fetchPassedCategorySet(userId),
       ])
 
-      if (questionsRes.error || progressRes.error) {
+      if (questionsRes.error || progressRes.error || passedRes.error) {
         setError(
-          questionsRes.error?.message ?? progressRes.error?.message ?? '不明なエラー'
+          questionsRes.error?.message ?? progressRes.error?.message ?? passedRes.error ?? '不明なエラー'
         )
         setLoading(false)
         return
       }
+
+      // 合格済みカテゴリの問題は出題対象から完全に除外する
+      const availableQuestions = (questionsRes.data ?? []).filter(
+        (q) => !passedRes.passed.has(q.category)
+      )
 
       const progressByQid = new Map(
         (progressRes.data ?? []).map((p) => [p.question_id, p])
@@ -134,7 +158,7 @@ export function usePrioritizedQuestions(userId: string | null, category?: Catego
       const review: Question[] = []
       const rest: Question[] = []
 
-      for (const q of questionsRes.data ?? []) {
+      for (const q of availableQuestions) {
         const p = progressByQid.get(q.id)
         if (!p) {
           unanswered.push(q)
@@ -177,14 +201,18 @@ export function useReviewQuestions(userId: string | null, category?: Category) {
       setLoading(true)
       setError(null)
 
-      const { data: progress, error: progressError } = await supabase
-        .from('user_progress')
-        .select('question_id, mastered, next_review_at, is_correct')
-        .eq('user_id', userId)
-        .eq('mastered', false)
+      const [progressRes, passedRes] = await Promise.all([
+        supabase
+          .from('user_progress')
+          .select('question_id, mastered, next_review_at, is_correct')
+          .eq('user_id', userId)
+          .eq('mastered', false),
+        fetchPassedCategorySet(userId),
+      ])
+      const { data: progress, error: progressError } = progressRes
 
-      if (progressError) {
-        setError(progressError.message)
+      if (progressError || passedRes.error) {
+        setError(progressError?.message ?? passedRes.error ?? '不明なエラー')
         setLoading(false)
         return
       }
@@ -208,7 +236,8 @@ export function useReviewQuestions(userId: string | null, category?: Category) {
       if (error) {
         setError(error.message)
       } else {
-        setQuestions(data ?? [])
+        // 合格済みカテゴリの問題は出題対象から完全に除外する
+        setQuestions((data ?? []).filter((q) => !passedRes.passed.has(q.category)))
       }
       setLoading(false)
     }
@@ -450,7 +479,7 @@ export function useHomeData(userId: string | null) {
     const startOfToday = new Date()
     startOfToday.setHours(0, 0, 0, 0)
 
-    const [questionsRes, progressRes, logsRes] = await Promise.all([
+    const [questionsRes, progressRes, logsRes, passedRes] = await Promise.all([
       supabase.from('questions').select('id, category'),
       supabase
         .from('user_progress')
@@ -461,13 +490,15 @@ export function useHomeData(userId: string | null) {
         .select('question_id, is_correct')
         .eq('user_id', userId)
         .gte('answered_at', startOfToday.toISOString()),
+      fetchPassedCategorySet(userId),
     ])
 
-    if (questionsRes.error || progressRes.error || logsRes.error) {
+    if (questionsRes.error || progressRes.error || logsRes.error || passedRes.error) {
       setError(
         questionsRes.error?.message ??
           progressRes.error?.message ??
           logsRes.error?.message ??
+          passedRes.error ??
           '不明なエラー'
       )
       setLoading(false)
@@ -504,10 +535,11 @@ export function useHomeData(userId: string | null) {
       }
     }
 
-    // おすすめ = まだ手をつけていない問題が最も多いカテゴリ
+    // おすすめ = まだ手をつけていない問題が最も多いカテゴリ（合格済みカテゴリは対象外）
     let recommended: HomeData['recommended'] = null
     let bestUntouched = 0
     for (const category of CATEGORIES) {
+      if (passedRes.passed.has(category)) continue
       const untouched = (totals[category] ?? 0) - (answeredByCat[category] ?? 0)
       if (untouched > bestUntouched) {
         bestUntouched = untouched

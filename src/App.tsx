@@ -4,12 +4,13 @@ import { QuizScreen } from './components/QuizScreen'
 import { CategoryStats } from './components/CategoryStats'
 import { HomeScreen } from './components/HomeScreen'
 import { TermCardGroupGame } from './components/TermCardGroupGame'
+import { SettingsScreen } from './components/SettingsScreen'
 import './App.css'
 import type { User } from '@supabase/supabase-js'
 import type { QuizStart } from './types/database'
 
 // アプリ内の画面
-type Screen = 'home' | 'quiz' | 'stats' | 'termGame'
+type Screen = 'home' | 'quiz' | 'stats' | 'termGame' | 'settings'
 
 function App() {
   const [user, setUser] = useState<User | null>(null)
@@ -87,6 +88,7 @@ function App() {
               <button className="nav-btn" onClick={() => setScreen('home')}>ホーム</button>
               <button className="nav-btn" onClick={() => { setQuizStart(undefined); setScreen('quiz') }}>クイズ</button>
               <button className="nav-btn" onClick={() => setScreen('stats')}>成績</button>
+              <button className="nav-btn" onClick={() => setScreen('settings')}>⚙️設定</button>
               <button className="nav-btn sign-out" onClick={handleSignOut}>ログアウト</button>
             </>
           ) : (
@@ -141,6 +143,11 @@ function App() {
         {/* 成績画面 */}
         {user && screen === 'stats' && (
           <CategoryStats userId={user.id} />
+        )}
+
+        {/* 設定画面 */}
+        {user && screen === 'settings' && (
+          <SettingsScreen userId={user.id} />
         )}
       </main>
     </div>

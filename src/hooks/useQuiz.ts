@@ -530,8 +530,11 @@ export function useHomeData(userId: string | null) {
         masteredByCat[cat] = (masteredByCat[cat] ?? 0) + 1
       } else {
         reviewingByCat[cat] = (reviewingByCat[cat] ?? 0) + 1
-        // 判定は isDueForReview に一本化（この分岐は mastered=false のため結果は従来と同一）
-        if (isDueForReview(p, now)) dueByCategory[cat] = (dueByCategory[cat] ?? 0) + 1
+        // 判定は isDueForReview に一本化（この分岐は mastered=false のため結果は従来と同一）。
+        // 合格済みカテゴリは「🔥苦手克服」の件数表示からも除外する。
+        if (isDueForReview(p, now) && !passedRes.passed.has(cat)) {
+          dueByCategory[cat] = (dueByCategory[cat] ?? 0) + 1
+        }
       }
     }
 

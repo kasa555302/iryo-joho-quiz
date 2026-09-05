@@ -10,11 +10,12 @@ interface Props {
   userId: string
   onFinish: () => void // クイズ終了・メニューに戻るときのコールバック
   start?: QuizStart // ホームからの導線で開始設定が渡された場合
+  onOpenGroupGame?: () => void // 用語カードのグループ探しゲームを開く
 }
 
 const CATEGORIES: Category[] = ['医学・医療系', '情報処理技術系', '医療情報システム系']
 
-export function QuizScreen({ userId, onFinish, start }: Props) {
+export function QuizScreen({ userId, onFinish, start, onOpenGroupGame }: Props) {
   // start が渡されていればモード選択を飛ばして即開始
   const [active, setActive] = useState<QuizStart | null>(start ?? null)
   const [currentIndex, setCurrentIndex] = useState(0)
@@ -113,6 +114,15 @@ export function QuizScreen({ userId, onFinish, start }: Props) {
             復習が必要な問題を出題
           </button>
         </section>
+
+        {onOpenGroupGame && (
+          <section>
+            <h3>用語カード</h3>
+            <button className="mode-btn" onClick={onOpenGroupGame}>
+              🃏 グループ探しゲーム
+            </button>
+          </section>
+        )}
       </div>
     )
   }

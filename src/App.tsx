@@ -3,12 +3,13 @@ import { supabase } from './lib/supabase'
 import { QuizScreen } from './components/QuizScreen'
 import { CategoryStats } from './components/CategoryStats'
 import { HomeScreen } from './components/HomeScreen'
+import { TermCardGroupGame } from './components/TermCardGroupGame'
 import './App.css'
 import type { User } from '@supabase/supabase-js'
 import type { QuizStart } from './types/database'
 
 // アプリ内の画面
-type Screen = 'home' | 'quiz' | 'stats'
+type Screen = 'home' | 'quiz' | 'stats' | 'termGame'
 
 function App() {
   const [user, setUser] = useState<User | null>(null)
@@ -128,7 +129,13 @@ function App() {
             userId={user.id}
             start={quizStart}
             onFinish={() => setScreen(quizStart ? 'home' : 'stats')}
+            onOpenGroupGame={() => setScreen('termGame')}
           />
+        )}
+
+        {/* 用語カード グループ探しゲーム */}
+        {user && screen === 'termGame' && (
+          <TermCardGroupGame onBack={() => setScreen('quiz')} />
         )}
 
         {/* 成績画面 */}
